@@ -3,19 +3,30 @@ package com.hanjx.exercise.game.tetris.logic
 import kotlin.random.Random
 
 class Block(
-    val offsets: Set<Offset>,
-    val orientationCount: Int
+    val offsetsList: List<Set<Offset>>,
 ) {
-    var next: Block = this
+    var currState: Int = 0
+    val currOffsets: Set<Offset>
+        get() = offsetsList[currState]
+    val nextOffsets: Set<Offset>
+        get() = offsetsList[if (currState == offsetsList.size - 1) 0 else currState + 1]
+
+    fun rotate() {
+        currState = if (currState == offsetsList.size - 1) 0 else currState + 1
+    }
+
+    fun changeAll(action: (Offset) -> Unit) {
+        offsetsList.forEach {
+            it.forEach(action)
+        }
+    }
 
     companion object {
         fun randomBlock(): Block {
-            var node = blockNodeList[Random.nextInt(blockNodeList.size)]
-            for (i in 0..Random.nextInt(4)) {
-                node = node.next
+            val pair = blockEnumList[Random.nextInt(blockEnumList.size)]
+            return offsetsList2Node(pair.first, pair.second).apply {
+                currState = Random.nextInt(offsetsList.size)
             }
-
-            return node
         }
 
         private val O = listOf(
@@ -52,33 +63,29 @@ class Block(
             setOf(Offset(0, 0), Offset(1, 0), Offset(2, 0), Offset(2, 1))
         )
 
-        private val blockNodeList = listOf(
-            offsetsList2Node(O, Offset(5, -2)),
-            offsetsList2Node(I, Offset(4, -4)),
-            offsetsList2Node(Z, Offset(4, -2)),
-            offsetsList2Node(S, Offset(4, -2)),
-            offsetsList2Node(T, Offset(4, -2)),
-            offsetsList2Node(L, Offset(5, -3)),
-            offsetsList2Node(rL, Offset(5, -3))
+        private val blockEnumList = listOf(
+            Pair(O, Offset(5, -2)),
+            Pair(I, Offset(4, -4)),
+            Pair(Z, Offset(4, -2)),
+            Pair(S, Offset(4, -2)),
+            Pair(T, Offset(4, -2)),
+            Pair(L, Offset(5, -3)),
+            Pair(rL, Offset(5, -3))
         )
 
         private fun offsetsList2Node(
             offsetList: List<Set<Offset>>,
             initOffset: Offset
         ): Block {
-            val nodeList = ArrayList<Block>()
+            val copyOffsetsList = mutableListOf<Set<Offset>>()
             offsetList.forEach { offsets ->
+                val copyOffsets = mutableSetOf<Offset>()
                 offsets.forEach { offset ->
-                    offset.x += initOffset.x
-                    offset.y += initOffset.y
+                    copyOffsets.add(Offset(offset.x + initOffset.x, offset.y + initOffset.y))
                 }
-                nodeList.add(Block(offsets, offsetList.size))
+                copyOffsetsList.add(copyOffsets)
             }
-            nodeList.last().next = nodeList[0]
-            for (i in 0 until offsetList.size - 1) {
-                nodeList[i].next = nodeList[i + 1]
-            }
-            return nodeList[0]
+            return Block(copyOffsetsList)
         }
     }
 }

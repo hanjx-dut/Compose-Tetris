@@ -1,20 +1,46 @@
 package com.hanjx.exercise.game.tetris.logic
 
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import com.hanjx.exercise.game.tetris.logic.Block.Companion.randomBlock
+import kotlinx.coroutines.*
 
 class TetrisViewModel : ViewModel() {
-    val screenDisplayState = MutableList(COLUMN_COUNT * ROW_COUNT) { false }
+    val screenDisplayState = mutableStateListOf<Boolean>().apply {
+        for (i in 0 until COLUMN_COUNT * ROW_COUNT) {
+            add(false)
+        }
+    }
     var currBlock by mutableStateOf(randomBlock())
 
-    fun goBottom() {
+    private var running = false
+    private var downJob: Job? = null
+
+    fun start() {
+        if (running) return
+        running = true
+        downJob = GlobalScope.launch {
+            while (true) {
+                delay(500)
+                moveDown()
+            }
+        }
+    }
+
+    fun pause() {
+        running = false
+        downJob?.cancel()
+    }
+
+    fun drop() {
+        if (!running) return
         if (canMoveDown()) {
             changeBlock {
                 while (canMoveDown()) {
-                    currBlock.forAllOffset { offset ->
+                    currBlock.changeAll { offset ->
                         offset.y++
                     }
                 }
@@ -26,9 +52,10 @@ class TetrisViewModel : ViewModel() {
     }
 
     fun moveDown() {
+        if (!running) return
         if (canMoveDown()) {
             changeBlock {
-                currBlock.forAllOffset { offset ->
+                currBlock.changeAll { offset ->
                     offset.y++
                 }
             }
@@ -37,14 +64,11 @@ class TetrisViewModel : ViewModel() {
         }
     }
 
-    private fun nextBlock() {
-        currBlock = randomBlock()
-    }
-
     fun moveLeft() {
+        if (!running) return
         if (canMoveLeft()) {
             changeBlock {
-                currBlock.forAllOffset { offset ->
+                currBlock.changeAll { offset ->
                     offset.x--
                 }
             }
@@ -52,9 +76,10 @@ class TetrisViewModel : ViewModel() {
     }
 
     fun moveRight() {
+        if (!running) return
         if (canMoveRight()) {
             changeBlock {
-                currBlock.forAllOffset { offset ->
+                currBlock.changeAll { offset ->
                     offset.x++
                 }
             }
@@ -62,17 +87,22 @@ class TetrisViewModel : ViewModel() {
     }
 
     fun rotate() {
+        if (!running) return
         if (canRotate()) {
             changeBlock {
-                currBlock = currBlock.next
+                currBlock.rotate()
             }
         }
     }
 
+    private fun nextBlock() {
+        currBlock = randomBlock()
+    }
+
     private fun changeBlock(action: () -> Unit) {
-        val old = currBlock.offsets2Indexes()
+        val old = currBlock.currOffsets.offsets2Indexes()
         action.invoke()
-        val new = currBlock.offsets2Indexes()
+        val new = currBlock.currOffsets.offsets2Indexes()
         new.forEach {
             if (!old.remove(it)) screenDisplayState[it] = true
         }
@@ -82,7 +112,7 @@ class TetrisViewModel : ViewModel() {
     }
 
     private fun canMoveDown(): Boolean {
-        currBlock.offsets.bottom.forEach {
+        currBlock.currOffsets.bottom.forEach {
             if (it.y >= -1 && (it.y >= ROW_COUNT - 1 || screenDisplayState[it.x, it.y + 1])) {
                 return false
             }
@@ -91,7 +121,7 @@ class TetrisViewModel : ViewModel() {
     }
 
     private fun canMoveLeft(): Boolean {
-        currBlock.offsets.left.forEach {
+        currBlock.currOffsets.left.forEach {
             if (it.x <= 0 || it.y >= 0 && screenDisplayState[it.x - 1, it.y]) {
                 return false
             }
@@ -100,7 +130,7 @@ class TetrisViewModel : ViewModel() {
     }
 
     private fun canMoveRight(): Boolean {
-        currBlock.offsets.right.forEach {
+        currBlock.currOffsets.right.forEach {
             if (it.x >= COLUMN_COUNT - 1 || it.y >= 0 && screenDisplayState[it.x + 1, it.y]) {
                 return false
             }
@@ -109,26 +139,16 @@ class TetrisViewModel : ViewModel() {
     }
 
     private fun canRotate(): Boolean {
-        if (currBlock.next == currBlock) {
+        if (currBlock.nextOffsets == currBlock.currOffsets) {
             return false
         }
-        currBlock.next.offsets.left.forEach {
-            if (it.x < 0) {
+        currBlock.nextOffsets.forEach {
+            if (!it.inScreen()) {
                 return false
             }
         }
-        currBlock.next.offsets.right.forEach {
-            if (it.x > COLUMN_COUNT - 1) {
-                return false
-            }
-        }
-        currBlock.next.offsets.bottom.forEach {
-            if (it.y > ROW_COUNT - 1) {
-                return false
-            }
-        }
-        val curr = currBlock.offsets2Indexes()
-        val next = currBlock.next.offsets2Indexes()
+        val curr = currBlock.currOffsets.offsets2Indexes()
+        val next = currBlock.nextOffsets.offsets2Indexes()
         next.forEach {
             if (!curr.contains(it) && screenDisplayState[it]) {
                 return false
@@ -148,27 +168,6 @@ class TetrisViewModel : ViewModel() {
         ) {
             indices.forEach {
                 action.invoke(it % column, it / column)
-            }
-        }
-
-        fun Block.offsets2Indexes(
-            column: Int = COLUMN_COUNT
-        ): MutableSet<Int> {
-            return mutableSetOf<Int>().apply {
-                offsets.forEach {
-                    if (it.x in 0 until COLUMN_COUNT && it.y in 0 until ROW_COUNT) {
-                        add(it.x + it.y * column)
-                    }
-                }
-            }
-        }
-
-        inline fun Block.forAllOffset(action: (Offset) -> Unit) {
-            var curr = this
-            val count = orientationCount
-            for (i in 0 until count) {
-                curr.offsets.forEach(action)
-                curr = curr.next
             }
         }
     }

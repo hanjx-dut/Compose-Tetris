@@ -46,9 +46,9 @@ fun GameScreen(modifier: Modifier) {
                 })
         Button(
             modifier = modifier.align(Alignment.CenterHorizontally),
-            onClick = { viewModel.goBottom() }
+            onClick = { viewModel.rotate() }
         ) {
-            Text("GO BOTTOM!")
+            Text("ROTATE")
         }
         Row(
             modifier.align(Alignment.CenterHorizontally)
@@ -56,8 +56,8 @@ fun GameScreen(modifier: Modifier) {
             Button({ viewModel.moveLeft() }) {
                 Text("LEFT")
             }
-            Button({ viewModel.rotate() }) {
-                Text("ROTATE")
+            Button({ viewModel.drop() }) {
+                Text("DROP")
             }
             Button({ viewModel.moveRight() }) {
                 Text("RIGHT")
@@ -69,6 +69,20 @@ fun GameScreen(modifier: Modifier) {
         ) {
             Text("DOWN")
         }
+
+        Row(
+            Modifier
+                .padding(top = 20.dp)
+                .align(Alignment.CenterHorizontally)
+        ) {
+            Button(onClick = { viewModel.start() }) {
+                Text("START")
+            }
+            Button(onClick = { viewModel.pause() }) {
+                Text("PAUSE")
+            }
+        }
+
     }
 }
 

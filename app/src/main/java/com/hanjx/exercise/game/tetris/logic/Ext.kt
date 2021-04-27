@@ -2,7 +2,6 @@ package com.hanjx.exercise.game.tetris.logic
 
 const val COLUMN_COUNT = 12
 const val ROW_COUNT = 24
-const val ROW_CENTER = 5
 
 val Set<Offset>.left: Set<Offset>
     get() {
@@ -39,3 +38,23 @@ val Set<Offset>.bottom: Set<Offset>
         }
         return bottom.values.toSet()
     }
+
+fun Offset.inScreen(
+    row: Int = ROW_COUNT,
+    column: Int = COLUMN_COUNT
+): Boolean {
+    return x in 0 until column && y in 0 until row
+}
+
+fun Set<Offset>.offsets2Indexes(
+    row: Int = ROW_COUNT,
+    column: Int = COLUMN_COUNT
+): MutableSet<Int> {
+    return mutableSetOf<Int>().also { result ->
+        forEach {
+            if (it.inScreen(row, column)) {
+                result.add(it.x + it.y * column)
+            }
+        }
+    }
+}
