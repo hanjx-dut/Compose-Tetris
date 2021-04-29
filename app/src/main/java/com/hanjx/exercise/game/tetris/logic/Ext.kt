@@ -1,9 +1,10 @@
 package com.hanjx.exercise.game.tetris.logic
 
+const val BLOCK_POINT_COUNT = 4
 const val COLUMN_COUNT = 12
 const val ROW_COUNT = 24
 
-val Set<Offset>.left: Set<Offset>
+val List<Offset>.left: List<Offset>
     get() {
         val left = mutableMapOf<Int, Offset>()
         forEach {
@@ -12,10 +13,10 @@ val Set<Offset>.left: Set<Offset>
                 left[it.y] = it
             }
         }
-        return left.values.toSet()
+        return left.values.toList()
     }
 
-val Set<Offset>.right: Set<Offset>
+val List<Offset>.right: List<Offset>
     get() {
         val right = mutableMapOf<Int, Offset>()
         forEach {
@@ -24,10 +25,10 @@ val Set<Offset>.right: Set<Offset>
                 right[it.y] = it
             }
         }
-        return right.values.toSet()
+        return right.values.toList()
     }
 
-val Set<Offset>.bottom: Set<Offset>
+val List<Offset>.bottom: List<Offset>
     get() {
         val bottom = mutableMapOf<Int, Offset>()
         forEach {
@@ -36,7 +37,7 @@ val Set<Offset>.bottom: Set<Offset>
                 bottom[it.x] = it
             }
         }
-        return bottom.values.toSet()
+        return bottom.values.toList()
     }
 
 fun Offset.inScreen(
@@ -46,7 +47,7 @@ fun Offset.inScreen(
     return x in 0 until column && y in 0 until row
 }
 
-fun Set<Offset>.offsets2Indexes(
+fun List<Offset>.offsets2Indexes(
     row: Int = ROW_COUNT,
     column: Int = COLUMN_COUNT
 ): MutableSet<Int> {

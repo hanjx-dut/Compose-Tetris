@@ -3,109 +3,76 @@ package com.hanjx.exercise.game.tetris.logic
 import kotlin.random.Random
 
 class Block(
-    val offsetsList: List<Set<Offset>>,
+    val offsets: List<List<Offset>>,
+    var currState: Int,
 ) {
-    var currState: Int = 0
-    val currOffsets: Set<Offset>
-        get() = offsetsList[currState]
-    val nextOffsets: Set<Offset>
-        get() = offsetsList[if (currState == offsetsList.size - 1) 0 else currState + 1]
+    val leftTop: Offset = Offset(4, -4)
+    val summaryOffset: List<Offset> = offsets[currState]
 
-    fun rotate() {
-        currState = if (currState == offsetsList.size - 1) 0 else currState + 1
-    }
-
-    fun changeAll(action: (Offset) -> Unit) {
-        offsetsList.forEach {
-            it.forEach(action)
-        }
-    }
-
-    private fun moveToStart() {
-        var maxY = Int.MIN_VALUE
-        currOffsets.forEach {
-            if (it.y > maxY) {
-                maxY = it.y
+    private val reusedCurrOffsets = listOf(Offset(), Offset(), Offset(), Offset())
+    val currOffsets: List<Offset>
+        get() = reusedCurrOffsets.apply {
+            forEachIndexed { i, offset ->
+                offset.x = offsets[currState][i].x + leftTop.x
+                offset.y = offsets[currState][i].y + leftTop.y
             }
         }
-        for (i in 0 until -1 - maxY) {
-            changeAll {
-                it.y++
-            }
-        }
-    }
 
     companion object {
         fun randomBlock(): Block {
-            val pair = blockEnumList[Random.nextInt(blockEnumList.size)]
-            return offsetsList2Node(pair.first, pair.second).apply {
-                currState = Random.nextInt(offsetsList.size)
-                moveToStart()
+            val offsetsList = blockEnumList[Random.nextInt(blockEnumList.size)]
+            return Block(offsetsList, Random.nextInt(offsetsList.size)).apply {
+                var maxY = Int.MIN_VALUE
+                currOffsets.forEach {
+                    if (it.y > maxY) {
+                        maxY = it.y
+                    }
+                }
+                for (i in 0 until -1 - maxY) {
+                    leftTop.y++
+                }
             }
         }
 
         private val O = listOf(
-            setOf(Offset(0, 0), Offset(0, 1), Offset(1, 0), Offset(1, 1))
+            listOf(Offset(0, 0), Offset(0, 1), Offset(1, 0), Offset(1, 1))
         )
         private val I = listOf(
-            setOf(Offset(0, 0), Offset(1, 0), Offset(2, 0), Offset(3, 0)),
-            setOf(Offset(1, 0), Offset(1, 1), Offset(1, 2), Offset(1, 3))
+            listOf(Offset(0, 0), Offset(1, 0), Offset(2, 0), Offset(3, 0)),
+            listOf(Offset(1, 0), Offset(1, 1), Offset(1, 2), Offset(1, 3))
         )
         private val Z = listOf(
-            setOf(Offset(0, 0), Offset(1, 0), Offset(1, 1), Offset(2, 1)),
-            setOf(Offset(1, 0), Offset(1, 1), Offset(0, 1), Offset(0, 2))
+            listOf(Offset(0, 0), Offset(1, 0), Offset(1, 1), Offset(2, 1)),
+            listOf(Offset(1, 0), Offset(1, 1), Offset(0, 1), Offset(0, 2))
         )
         private val S = listOf(
-            setOf(Offset(2, 0), Offset(1, 0), Offset(1, 1), Offset(0, 1)),
-            setOf(Offset(0, 0), Offset(0, 1), Offset(1, 1), Offset(1, 2))
+            listOf(Offset(2, 0), Offset(1, 0), Offset(1, 1), Offset(0, 1)),
+            listOf(Offset(0, 0), Offset(0, 1), Offset(1, 1), Offset(1, 2))
         )
         private val T = listOf(
-            setOf(Offset(0, 0), Offset(1, 0), Offset(2, 0), Offset(1, 1)),
-            setOf(Offset(1, 0), Offset(1, 1), Offset(0, 1), Offset(1, 2)),
-            setOf(Offset(1, 0), Offset(0, 1), Offset(1, 1), Offset(2, 1)),
-            setOf(Offset(1, 0), Offset(1, 1), Offset(1, 2), Offset(2, 1))
+            listOf(Offset(0, 0), Offset(1, 0), Offset(2, 0), Offset(1, 1)),
+            listOf(Offset(1, 0), Offset(1, 1), Offset(0, 1), Offset(1, 2)),
+            listOf(Offset(1, 0), Offset(0, 1), Offset(1, 1), Offset(2, 1)),
+            listOf(Offset(1, 0), Offset(1, 1), Offset(1, 2), Offset(2, 1))
         )
         private val L = listOf(
-            setOf(Offset(0, 0), Offset(0, 1), Offset(0, 2), Offset(1, 2)),
-            setOf(Offset(0, 0), Offset(1, 0), Offset(2, 0), Offset(0, 1)),
-            setOf(Offset(0, 0), Offset(1, 0), Offset(1, 1), Offset(1, 2)),
-            setOf(Offset(2, 0), Offset(2, 1), Offset(1, 1), Offset(0, 1))
+            listOf(Offset(0, 0), Offset(0, 1), Offset(0, 2), Offset(1, 2)),
+            listOf(Offset(0, 0), Offset(1, 0), Offset(2, 0), Offset(0, 1)),
+            listOf(Offset(0, 0), Offset(1, 0), Offset(1, 1), Offset(1, 2)),
+            listOf(Offset(2, 0), Offset(2, 1), Offset(1, 1), Offset(0, 1))
         )
         private val rL = listOf(
-            setOf(Offset(1, 0), Offset(1, 1), Offset(1, 2), Offset(0, 2)),
-            setOf(Offset(0, 0), Offset(0, 1), Offset(1, 1), Offset(2, 1)),
-            setOf(Offset(0, 0), Offset(1, 0), Offset(0, 1), Offset(0, 2)),
-            setOf(Offset(0, 0), Offset(1, 0), Offset(2, 0), Offset(2, 1))
+            listOf(Offset(1, 0), Offset(1, 1), Offset(1, 2), Offset(0, 2)),
+            listOf(Offset(0, 0), Offset(0, 1), Offset(1, 1), Offset(2, 1)),
+            listOf(Offset(0, 0), Offset(1, 0), Offset(0, 1), Offset(0, 2)),
+            listOf(Offset(0, 0), Offset(1, 0), Offset(2, 0), Offset(2, 1))
         )
 
-        private val blockEnumList = listOf(
-            Pair(O, Offset(5, -2)),
-            Pair(I, Offset(4, -4)),
-            Pair(Z, Offset(4, -2)),
-            Pair(S, Offset(4, -2)),
-            Pair(T, Offset(4, -2)),
-            Pair(L, Offset(5, -3)),
-            Pair(rL, Offset(5, -3))
-        )
-
-        private fun offsetsList2Node(
-            offsetList: List<Set<Offset>>,
-            initOffset: Offset
-        ): Block {
-            val copyOffsetsList = mutableListOf<Set<Offset>>()
-            offsetList.forEach { offsets ->
-                val copyOffsets = mutableSetOf<Offset>()
-                offsets.forEach { offset ->
-                    copyOffsets.add(Offset(offset.x + initOffset.x, offset.y + initOffset.y))
-                }
-                copyOffsetsList.add(copyOffsets)
-            }
-            return Block(copyOffsetsList)
-        }
+        private val blockEnumList = listOf(O, I, Z, S, T, L, rL)
     }
 }
 
 class Offset(
-    var x: Int,
-    var y: Int
+    var x: Int = 0,
+    var y: Int = 0
 )

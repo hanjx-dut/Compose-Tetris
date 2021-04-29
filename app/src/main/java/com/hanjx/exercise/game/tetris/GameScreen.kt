@@ -1,13 +1,16 @@
 package com.hanjx.exercise.game.tetris
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.Button
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -15,95 +18,251 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.hanjx.exercise.game.tetris.logic.COLUMN_COUNT
-import com.hanjx.exercise.game.tetris.logic.ROW_COUNT
-import com.hanjx.exercise.game.tetris.logic.TetrisViewModel
-import com.hanjx.exercise.game.tetris.logic.TetrisViewModel.Companion.get
-import com.hanjx.exercise.game.tetris.logic.TetrisViewModel.Companion.forXY
+import com.hanjx.exercise.game.tetris.logic.*
 
 @Composable
 fun GameScreen(modifier: Modifier) {
     val viewModel = viewModel(TetrisViewModel::class.java)
-    val displayState = remember { viewModel.screenDisplayState }
 
     Column(modifier.fillMaxSize()) {
-        Box(
-            modifier
-                .background(Color(0xFFDDDDDD))
-                .align(Alignment.CenterHorizontally)
-                .size(240.dp, 480.dp)
-                .drawBehind {
-                    drawMatrixScreenBg(
-                        20.dp,
-                        Color(0x50000000),
-                        Color(0xFF000000),
-                        displayState
-                    )
-                })
-        Button(
-            modifier = modifier.align(Alignment.CenterHorizontally),
-            onClick = { viewModel.rotate() }
-        ) {
-            Text("ROTATE")
-        }
-        Row(
-            modifier.align(Alignment.CenterHorizontally)
-        ) {
-            Button({ viewModel.moveLeft() }) {
-                Text("LEFT")
-            }
-            Button({ viewModel.drop() }) {
-                Text("DROP")
-            }
-            Button({ viewModel.moveRight() }) {
-                Text("RIGHT")
-            }
-        }
-        Button(
-            modifier = modifier.align(Alignment.CenterHorizontally),
-            onClick = { viewModel.moveDown() }
-        ) {
-            Text("DOWN")
-        }
-
         Row(
             Modifier
-                .padding(top = 20.dp)
-                .align(Alignment.CenterHorizontally)
+                .align(Alignment.Start)
+                .padding(top = 10.dp)
         ) {
-            Button(onClick = { viewModel.start() }) {
-                Text("START")
-            }
-            Button(onClick = { viewModel.pause() }) {
-                Text("PAUSE")
-            }
+            Screen(
+                modifier = Modifier,
+                displayState = remember { viewModel.screenDisplayState }
+            )
+            StatusScreen(
+                modifier = Modifier,
+                maxScore = 10,
+                currScore = 10,
+                currBlock = viewModel.currBlock,
+                nextBlock = Block.randomBlock(),
+                blockColor = Color(0xFF000000)
+            )
         }
+        FuncButtons(
+            modifier = modifier
+                .padding(top = 5.dp)
+                .align(Alignment.CenterHorizontally),
+            startClick = { viewModel.doAction(Action.StartGame) },
+            pauseClick = { viewModel.doAction(Action.PauseGame) },
+            resetClick = { viewModel.doAction(Action.ResetGame) }
+        )
 
+        ControlButtons(
+            modifier = modifier
+                .padding(top = 10.dp)
+                .align(Alignment.CenterHorizontally),
+            rotateClick = { viewModel.doAction(Action.Rotate) },
+            leftClick = { viewModel.doAction(Action.MoveLeft) },
+            rightClick = { viewModel.doAction(Action.MoveRight) },
+            downClick = { viewModel.doAction(Action.MoveDown) },
+            dropClick = { viewModel.doAction(Action.Drop) }
+        )
     }
 }
 
-fun DrawScope.drawMatrixScreenBg(
-    matrixSize: Dp,
-    matrixNormalColor: Color,
-    matrixDisplayColor: Color,
-    matrixDisplayStatus: MutableList<Boolean>
+@Composable
+fun Screen(
+    modifier: Modifier,
+    displayState: List<Boolean>
 ) {
-    matrixDisplayStatus.forXY { x, y ->
-        drawMatrix(
-            matrixSize, x, y, if (matrixDisplayStatus[x, y]) {
-                matrixDisplayColor
+    val pointSize = 20.dp
+    Box(
+        modifier
+            .background(Color(0xFFDDDDDD))
+            .size(pointSize * COLUMN_COUNT, pointSize * ROW_COUNT)
+            .drawBehind {
+                drawScreen(
+                    COLUMN_COUNT,
+                    pointSize,
+                    Color(0x50000000),
+                    Color(0xFF000000),
+                    displayState
+                )
+            })
+}
+
+@Composable
+fun StatusScreen(
+    modifier: Modifier,
+    maxScore: Int,
+    currScore: Int,
+    currBlock: Block,
+    nextBlock: Block,
+    blockColor: Color
+) {
+    Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(
+            text = "RECORD\n$maxScore",
+            color = Color(0xFF3C464F),
+            style = TextStyle(
+                textAlign = TextAlign.Center,
+                fontWeight = FontWeight.Bold
+            )
+        )
+        Text(
+            text = "SCORE\n$currScore",
+            style = TextStyle(textAlign = TextAlign.Center),
+            modifier = Modifier.padding(top = 20.dp)
+        )
+        Text(
+            text = "CURRENT",
+            style = TextStyle(textAlign = TextAlign.Center),
+            modifier = Modifier.padding(top = 20.dp)
+        )
+        Box(
+            modifier = Modifier
+                .padding(top = 20.dp)
+                .size(80.dp)
+                .drawBehind {
+                    currBlock.summaryOffset.forEach {
+                        drawScreenPoint(10.dp, it.x, it.y, blockColor)
+                    }
+                }
+        )
+        Text(
+            text = "NEXT",
+            style = TextStyle(textAlign = TextAlign.Center),
+            modifier = Modifier.padding(top = 20.dp)
+        )
+        Box(
+            modifier = Modifier
+                .padding(top = 20.dp)
+                .size(80.dp)
+                .drawBehind {
+                    nextBlock.summaryOffset.forEach {
+                        drawScreenPoint(10.dp, it.x, it.y, blockColor)
+                    }
+                }
+        )
+    }
+}
+
+@Composable
+fun ControlButtons(
+    modifier: Modifier,
+    rotateClick: () -> Unit,
+    leftClick: () -> Unit,
+    rightClick: () -> Unit,
+    downClick: () -> Unit,
+    dropClick: () -> Unit
+) {
+    Box(modifier.size(180.dp)) {
+        Image(
+            painter = painterResource(R.drawable.app_rotate),
+            contentDescription = "rotate",
+            modifier = Modifier
+                .size(60.dp)
+                .clip(RoundedCornerShape(30.dp))
+                .align(Alignment.TopCenter)
+                .clickable(onClick = rotateClick)
+        )
+        Image(
+            painter = painterResource(R.drawable.app_arrow_left),
+            contentDescription = "left",
+            modifier = Modifier
+                .size(60.dp)
+                .clip(RoundedCornerShape(30.dp))
+                .align(Alignment.CenterStart)
+                .clickable(onClick = leftClick)
+        )
+        Image(
+            painter = painterResource(R.drawable.app_arrow_right),
+            contentDescription = "right",
+            modifier = Modifier
+                .size(60.dp)
+                .clip(RoundedCornerShape(30.dp))
+                .align(Alignment.CenterEnd)
+                .clickable(onClick = rightClick)
+        )
+        Image(
+            painter = painterResource(R.drawable.app_arrow_down),
+            contentDescription = "down",
+            modifier = Modifier
+                .size(60.dp)
+                .clip(RoundedCornerShape(30.dp))
+                .align(Alignment.BottomCenter)
+                .clickable(onClick = downClick)
+        )
+        Image(
+            painter = painterResource(R.drawable.app_drop),
+            contentDescription = "drop",
+            modifier = Modifier
+                .size(60.dp)
+                .clip(RoundedCornerShape(30.dp))
+                .align(Alignment.Center)
+                .clickable(onClick = dropClick)
+        )
+    }
+}
+
+@Composable
+fun FuncButtons(
+    modifier: Modifier,
+    startClick: () -> Unit,
+    pauseClick: () -> Unit,
+    resetClick: () -> Unit
+) {
+    Row(modifier = modifier) {
+        Text(
+            text = "START",
+            color = Color(0xFF3C7CFC),
+            fontSize = 20.sp,
+            modifier = modifier
+                .padding(horizontal = 20.dp)
+                .clickable(onClick = startClick)
+        )
+        Text(
+            text = "PAUSE",
+            color = Color(0xFF3C7CFC),
+            fontSize = 20.sp,
+            modifier = modifier
+                .padding(horizontal = 20.dp)
+                .clickable(onClick = pauseClick)
+        )
+        Text(
+            text = "RESET",
+            color = Color(0xFF3C7CFC),
+            fontSize = 20.sp,
+            modifier = modifier
+                .padding(horizontal = 20.dp)
+                .clickable(onClick = resetClick)
+        )
+    }
+}
+
+fun DrawScope.drawScreen(
+    columnCount: Int,
+    matrixSize: Dp,
+    normalColor: Color,
+    displayColor: Color,
+    displayStatus: List<Boolean>
+) {
+    displayStatus.forEachIndexed { i, state ->
+        drawScreenPoint(
+            matrixSize, i % columnCount, i / columnCount, if (state) {
+                displayColor
             } else {
-                matrixNormalColor
+                normalColor
             }
         )
     }
 }
 
-fun DrawScope.drawMatrix(
+fun DrawScope.drawScreenPoint(
     size: Dp,
     x: Int,
     y: Int,
@@ -132,7 +291,8 @@ fun ScreenPreview() {
             .background(Color(0xFFDDDDDD))
             .size(120.dp, 240.dp)
             .drawBehind {
-                drawMatrixScreenBg(
+                drawScreen(
+                    COLUMN_COUNT,
                     10.dp,
                     Color(0x70000000),
                     Color(0xFF000000),
@@ -142,4 +302,16 @@ fun ScreenPreview() {
                 )
             }
     )
+}
+
+@Preview
+@Composable
+fun FuncBarPreview() {
+    FuncButtons(Modifier, {}, {}, {})
+}
+
+@Preview
+@Composable
+fun ControlBarPreview() {
+    ControlButtons(Modifier.background(Color.White), {}, {}, {}, {}, {})
 }
