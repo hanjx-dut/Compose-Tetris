@@ -21,11 +21,26 @@ class Block(
         }
     }
 
+    private fun moveToStart() {
+        var maxY = Int.MIN_VALUE
+        currOffsets.forEach {
+            if (it.y > maxY) {
+                maxY = it.y
+            }
+        }
+        for (i in 0 until -1 - maxY) {
+            changeAll {
+                it.y++
+            }
+        }
+    }
+
     companion object {
         fun randomBlock(): Block {
             val pair = blockEnumList[Random.nextInt(blockEnumList.size)]
             return offsetsList2Node(pair.first, pair.second).apply {
                 currState = Random.nextInt(offsetsList.size)
+                moveToStart()
             }
         }
 

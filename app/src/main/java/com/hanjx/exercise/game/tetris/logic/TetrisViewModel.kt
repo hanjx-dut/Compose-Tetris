@@ -19,6 +19,18 @@ class TetrisViewModel : ViewModel() {
     private var running = false
     private var downJob: Job? = null
 
+    fun gameOver() {
+        reset()
+    }
+
+    fun reset() {
+        pause()
+        screenDisplayState.indices.forEach {
+            screenDisplayState[it] = false
+        }
+        currBlock = randomBlock()
+    }
+
     fun start() {
         if (running) return
         running = true
@@ -96,18 +108,56 @@ class TetrisViewModel : ViewModel() {
     }
 
     private fun nextBlock() {
+        currBlock.currOffsets.forEach {
+            if (!it.inScreen()) {
+                gameOver()
+                return
+            }
+        }
+        clearLine()
         currBlock = randomBlock()
+    }
+
+    private fun clearLine() {
+        val newDisplayed = mutableSetOf<Int>()
+        var newLineY = ROW_COUNT - 1
+        for (fakeY in 0 until ROW_COUNT) {
+            val realY = ROW_COUNT - fakeY - 1
+            var linePointCount = 0
+            for (x in 0 until COLUMN_COUNT) {
+                if (screenDisplayState[x, realY]) {
+                    linePointCount++
+                }
+            }
+            if (linePointCount == 0 || linePointCount == COLUMN_COUNT) {
+                continue
+            }
+            for (x in 0 until COLUMN_COUNT) {
+                if (screenDisplayState[x, realY]) {
+                    newDisplayed.add(newLineY * COLUMN_COUNT + x)
+                }
+            }
+            newLineY--
+        }
+
+        for (x in 0 until COLUMN_COUNT) {
+            for (y in 0 until ROW_COUNT) {
+                screenDisplayState[x, y] = newDisplayed.contains(x + y * COLUMN_COUNT)
+            }
+        }
     }
 
     private fun changeBlock(action: () -> Unit) {
         val old = currBlock.currOffsets.offsets2Indexes()
         action.invoke()
         val new = currBlock.currOffsets.offsets2Indexes()
-        new.forEach {
-            if (!old.remove(it)) screenDisplayState[it] = true
-        }
         old.forEach {
-            screenDisplayState[it] = false
+            if (!new.contains(it)) {
+                screenDisplayState[it] = false
+            }
+        }
+        new.forEach {
+            screenDisplayState[it] = true
         }
     }
 
