@@ -7,7 +7,7 @@ class Block(
     var currState: Int,
 ) {
     val leftTop: Offset = Offset(4, -4)
-    val summaryOffset: List<Offset> = offsets[currState]
+    val summaryOffset = offsets[currState]
 
     private val reusedCurrOffsets = listOf(Offset(), Offset(), Offset(), Offset())
     val currOffsets: List<Offset>

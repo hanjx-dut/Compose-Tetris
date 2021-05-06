@@ -5,49 +5,57 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.hanjx.exercise.game.tetris.logic.Block.Companion.randomBlock
 import kotlinx.coroutines.*
+import kotlin.math.max
 
 class TetrisViewModel : ViewModel() {
-    // TODO: 2021/5/4 线程不安全
     val screenDisplayState = mutableStateListOf<Boolean>().apply {
         for (i in 0 until COLUMN_COUNT * ROW_COUNT) {
             add(false)
         }
     }
     var currBlock by mutableStateOf(randomBlock())
+    var nextBlock by mutableStateOf(randomBlock())
+    var recordScore by mutableStateOf(0)
+    var currScore by mutableStateOf(0)
 
     private var running = false
     private var downJob: Job? = null
 
     fun doAction(action: Action) {
-        when (action) {
-            Action.StartGame -> {
-                if (!running) {
-                    running = true
-                    // TODO: 2021/5/4 线程不安全
-                    downJob = GlobalScope.launch {
-                        while (true) {
-                            delay(500)
-                            doAction(Action.MoveDown)
+        viewModelScope.launch(Dispatchers.Main) {
+            when (action) {
+                Action.StartGame -> {
+                    if (!running) {
+                        running = true
+                        downJob = launch(Dispatchers.Default) {
+                            while (true) {
+                                delay(500)
+                                launch(Dispatchers.Main) {
+                                    doAction(Action.MoveDown)
+                                }
+                            }
                         }
                     }
                 }
-            }
-            Action.PauseGame -> {
-                if (running) {
-                    running = false
-                    downJob?.cancel()
+                Action.PauseGame -> {
+                    if (running) {
+                        running = false
+                        downJob?.cancel()
+                    }
                 }
-            }
-            Action.ResetGame -> {
-                doAction(Action.PauseGame)
-                screenDisplayState.indices.forEach {
-                    screenDisplayState[it] = false
+                Action.ResetGame -> {
+                    doAction(Action.PauseGame)
+                    screenDisplayState.indices.forEach {
+                        screenDisplayState[it] = false
+                    }
+                    currBlock = randomBlock()
+                    nextBlock = randomBlock()
                 }
-                currBlock = randomBlock()
+                else -> blockAction(action)
             }
-            else -> blockAction(action)
         }
     }
 
@@ -85,10 +93,13 @@ class TetrisViewModel : ViewModel() {
         }
         if (changeBlock) {
             if (newIndexes.size != BLOCK_POINT_COUNT) {
+                recordScore = max(recordScore, currScore)
+                currScore = 0
                 doAction(Action.ResetGame)
             } else {
                 clearLine()
-                currBlock = randomBlock()
+                currBlock = nextBlock
+                nextBlock = randomBlock()
             }
         }
     }
@@ -96,6 +107,7 @@ class TetrisViewModel : ViewModel() {
     private fun clearLine() {
         val newDisplayed = mutableSetOf<Int>()
         var newLineY = ROW_COUNT - 1
+        var clearedLine = 0
         for (fakeY in 0 until ROW_COUNT) {
             val realY = ROW_COUNT - fakeY - 1
             var linePointCount = 0
@@ -104,7 +116,11 @@ class TetrisViewModel : ViewModel() {
                     linePointCount++
                 }
             }
-            if (linePointCount == 0 || linePointCount == COLUMN_COUNT) {
+            if (linePointCount == 0) {
+                continue
+            }
+            if (linePointCount == COLUMN_COUNT) {
+                clearedLine++
                 continue
             }
             for (x in 0 until COLUMN_COUNT) {
@@ -114,10 +130,13 @@ class TetrisViewModel : ViewModel() {
             }
             newLineY--
         }
-
-        for (x in 0 until COLUMN_COUNT) {
-            for (y in 0 until ROW_COUNT) {
-                screenDisplayState[x, y] = newDisplayed.contains(x + y * COLUMN_COUNT)
+        if (clearedLine > 0) {
+            // 1 line = 100, 2 line = 250, 3 line = 400, 4 line = 600
+            currScore += 100 * clearedLine + (50 * (clearedLine - 1))
+            for (x in 0 until COLUMN_COUNT) {
+                for (y in 0 until ROW_COUNT) {
+                    screenDisplayState[x, y] = newDisplayed.contains(x + y * COLUMN_COUNT)
+                }
             }
         }
     }

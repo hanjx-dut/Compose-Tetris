@@ -36,22 +36,24 @@ fun GameScreen(modifier: Modifier) {
     Column(modifier.fillMaxSize()) {
         Row(
             Modifier
-                .align(Alignment.Start)
-                .padding(top = 10.dp)
+                .padding(top = 15.dp)
+                .align(Alignment.CenterHorizontally)
         ) {
             Screen(
                 modifier = Modifier,
                 displayState = remember { viewModel.screenDisplayState }
             )
             StatusScreen(
-                modifier = Modifier,
-                maxScore = 10,
-                currScore = 10,
+                modifier = Modifier.padding(start = 10.dp),
+                maxScore = viewModel.recordScore,
+                currScore = viewModel.currScore,
                 currBlock = viewModel.currBlock,
-                nextBlock = Block.randomBlock(),
+                nextBlock = viewModel.nextBlock,
+                blockPointSize = 10.dp,
                 blockColor = Color(0xFF000000)
             )
         }
+
         FuncButtons(
             modifier = modifier
                 .padding(top = 5.dp)
@@ -102,9 +104,13 @@ fun StatusScreen(
     currScore: Int,
     currBlock: Block,
     nextBlock: Block,
+    blockPointSize: Dp,
     blockColor: Color
 ) {
-    Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
         Text(
             text = "RECORD\n$maxScore",
             color = Color(0xFF3C464F),
@@ -126,10 +132,13 @@ fun StatusScreen(
         Box(
             modifier = Modifier
                 .padding(top = 20.dp)
-                .size(80.dp)
+                .size(
+                    width = blockPointSize.times(currBlock.summaryOffset.bottom.size),
+                    height = blockPointSize.times(4)
+                )
                 .drawBehind {
                     currBlock.summaryOffset.forEach {
-                        drawScreenPoint(10.dp, it.x, it.y, blockColor)
+                        drawScreenPoint(blockPointSize, it.x, it.y, blockColor)
                     }
                 }
         )
@@ -141,10 +150,13 @@ fun StatusScreen(
         Box(
             modifier = Modifier
                 .padding(top = 20.dp)
-                .size(80.dp)
+                .size(
+                    width = blockPointSize.times(nextBlock.summaryOffset.bottom.size),
+                    height = blockPointSize.times(4)
+                )
                 .drawBehind {
                     nextBlock.summaryOffset.forEach {
-                        drawScreenPoint(10.dp, it.x, it.y, blockColor)
+                        drawScreenPoint(blockPointSize, it.x, it.y, blockColor)
                     }
                 }
         )
@@ -301,6 +313,20 @@ fun ScreenPreview() {
                     }
                 )
             }
+    )
+}
+
+@Preview
+@Composable
+fun StatusScreenPreview() {
+    StatusScreen(
+        modifier = Modifier,
+        maxScore = 1000000,
+        currScore = 500,
+        currBlock = Block.randomBlock(),
+        nextBlock = Block.randomBlock(),
+        blockPointSize = 10.dp,
+        blockColor = Color(0xFF000000)
     )
 }
 
