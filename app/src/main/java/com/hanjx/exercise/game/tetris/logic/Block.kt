@@ -2,38 +2,31 @@ package com.hanjx.exercise.game.tetris.logic
 
 import kotlin.random.Random
 
-class Block(
-    val offsets: List<List<Offset>>,
-    var currState: Int,
-) {
-    val leftTop: Offset = Offset(4, -4)
-    val summaryOffset = offsets[currState]
+class Block {
+    val offsets: List<List<Offset>> = blockOffsetEnum[Random.nextInt(blockOffsetEnum.size)]
+    var state: Int = Random.nextInt(offsets.size)
+    val leftTop: Offset =
+        Offset((COLUMN_COUNT - offsets[state].bottom.size) / 2, -offsets[state].left.size)
 
-    private val reusedCurrOffsets = listOf(Offset(), Offset(), Offset(), Offset())
+    val summaryOffset = List(BLOCK_POINT_COUNT) { Offset() }.apply {
+        val dx = offsets[state].minOf { it.x }
+        val dy = offsets[state].minOf { it.y }
+        offsets[state].forEachIndexed { i, offset ->
+            this[i].x = offset.x - dx
+            this[i].y = offset.y - dy
+        }
+    }
+
     val currOffsets: List<Offset>
         get() = reusedCurrOffsets.apply {
             forEachIndexed { i, offset ->
-                offset.x = offsets[currState][i].x + leftTop.x
-                offset.y = offsets[currState][i].y + leftTop.y
+                offset.x = offsets[state][i].x + leftTop.x
+                offset.y = offsets[state][i].y + leftTop.y
             }
         }
 
     companion object {
-        fun randomBlock(): Block {
-            val offsetsList = blockEnumList[Random.nextInt(blockEnumList.size)]
-            return Block(offsetsList, Random.nextInt(offsetsList.size)).apply {
-                var maxY = Int.MIN_VALUE
-                currOffsets.forEach {
-                    if (it.y > maxY) {
-                        maxY = it.y
-                    }
-                }
-                for (i in 0 until -1 - maxY) {
-                    leftTop.y++
-                }
-            }
-        }
-
+        private val reusedCurrOffsets = List(4) { Offset() }
         private val O = listOf(
             listOf(Offset(0, 0), Offset(0, 1), Offset(1, 0), Offset(1, 1))
         )
@@ -68,7 +61,7 @@ class Block(
             listOf(Offset(0, 0), Offset(1, 0), Offset(2, 0), Offset(2, 1))
         )
 
-        private val blockEnumList = listOf(O, I, Z, S, T, L, rL)
+        private val blockOffsetEnum = listOf(O, I, Z, S, T, L, rL)
     }
 }
 
@@ -76,3 +69,39 @@ class Offset(
     var x: Int = 0,
     var y: Int = 0
 )
+
+val List<Offset>.left: List<Offset>
+    get() {
+        val left = mutableMapOf<Int, Offset>()
+        forEach {
+            val curr = left[it.y]
+            if (curr == null || it.x < curr.x) {
+                left[it.y] = it
+            }
+        }
+        return left.values.toList()
+    }
+
+val List<Offset>.right: List<Offset>
+    get() {
+        val right = mutableMapOf<Int, Offset>()
+        forEach {
+            val curr = right[it.y]
+            if (curr == null || it.x > curr.x) {
+                right[it.y] = it
+            }
+        }
+        return right.values.toList()
+    }
+
+val List<Offset>.bottom: List<Offset>
+    get() {
+        val bottom = mutableMapOf<Int, Offset>()
+        forEach {
+            val curr = bottom[it.x]
+            if (curr == null || it.y > curr.y) {
+                bottom[it.x] = it
+            }
+        }
+        return bottom.values.toList()
+    }

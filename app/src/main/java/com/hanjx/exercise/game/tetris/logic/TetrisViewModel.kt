@@ -6,18 +6,15 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.hanjx.exercise.game.tetris.logic.Block.Companion.randomBlock
 import kotlinx.coroutines.*
 import kotlin.math.max
 
 class TetrisViewModel : ViewModel() {
-    val screenDisplayState = mutableStateListOf<Boolean>().apply {
-        for (i in 0 until COLUMN_COUNT * ROW_COUNT) {
-            add(false)
-        }
+    val pointState = mutableStateListOf<Boolean>().apply {
+        for (i in 0 until COLUMN_COUNT * ROW_COUNT) add(false)
     }
-    var currBlock by mutableStateOf(randomBlock())
-    var nextBlock by mutableStateOf(randomBlock())
+    var currBlock by mutableStateOf(Block())
+    var nextBlock by mutableStateOf(Block())
     var recordScore by mutableStateOf(0)
     var currScore by mutableStateOf(0)
 
@@ -47,12 +44,13 @@ class TetrisViewModel : ViewModel() {
                     }
                 }
                 Action.ResetGame -> {
-                    doAction(Action.PauseGame)
-                    screenDisplayState.indices.forEach {
-                        screenDisplayState[it] = false
+                    running = false
+                    downJob?.cancel()
+                    pointState.indices.forEach {
+                        pointState[it] = false
                     }
-                    currBlock = randomBlock()
-                    nextBlock = randomBlock()
+                    currBlock = Block()
+                    nextBlock = Block()
                 }
                 else -> blockAction(action)
             }
@@ -60,36 +58,60 @@ class TetrisViewModel : ViewModel() {
     }
 
     private fun blockAction(action: Action) {
-        if (!running) {
-            return
-        }
-        val oldIndexes = currBlock.currOffsets.offsets2Indexes()
+        if (!running) return
+        val currOffsets = currBlock.currOffsets
+        val oldIndexes = currOffsets.indexes
         var changeBlock = false
-        when {
-            action == Action.MoveLeft && canMoveLeft() -> currBlock.leftTop.x--
-            action == Action.MoveRight && canMoveRight() -> currBlock.leftTop.x++
-            action == Action.Rotate && canRotate() ->
-                currBlock.currState =
-                    if (currBlock.currState == currBlock.offsets.size - 1) 0 else currBlock.currState + 1
-            action == Action.MoveDown && canMoveDown() -> currBlock.leftTop.y++
-            action == Action.Drop && canMoveDown() -> {
-                while (canMoveDown()) {
-                    currBlock.leftTop.y++
+        when (action) {
+            Action.MoveLeft -> {
+                val canMoveLeft: (Offset) -> Boolean =
+                    { it.x > 0 && (it.y < 0 || !pointState[it.x - 1, it.y]) }
+                if (currOffsets.left.checkAll(canMoveLeft))
+                    currBlock.leftTop.x--
+            }
+            Action.MoveRight -> {
+                val canMoveRight: (Offset) -> Boolean =
+                    { it.x < COLUMN_COUNT - 1 && (it.y < 0 || !pointState[it.x + 1, it.y]) }
+                if (currOffsets.right.checkAll(canMoveRight))
+                    currBlock.leftTop.x++
+            }
+            Action.Rotate -> {
+                val nextState =
+                    if (currBlock.state == currBlock.offsets.size - 1) 0 else currBlock.state + 1
+                val canRotate: (Offset) -> Boolean = {
+                    val index = it.index + currBlock.leftTop.index
+                    index < 0 || oldIndexes.contains(index) || !pointState[index]
                 }
+                if (currBlock.offsets.size > 1 && currBlock.offsets[nextState].checkAll(canRotate))
+                    currBlock.state = nextState
+            }
+            Action.MoveDown -> {
+                val canMoveDown: (Offset) -> Boolean =
+                    { it.y < -1 || it.y < ROW_COUNT - 1 && !pointState[it.x, it.y + 1] }
+                if (currOffsets.bottom.checkAll(canMoveDown)) {
+                    currBlock.leftTop.y++
+                } else {
+                    changeBlock = true
+                }
+            }
+            Action.Drop -> {
+                val canMoveDown: (Offset) -> Boolean =
+                    { it.y < -1 || it.y < ROW_COUNT - 1 && !pointState[it.x, it.y + 1] }
+                while (currBlock.currOffsets.bottom.checkAll(canMoveDown))
+                    currBlock.leftTop.y++
                 changeBlock = true
             }
-            !canMoveDown() && (action == Action.MoveDown || action == Action.Drop) -> {
-                changeBlock = true
+            else -> {
             }
         }
-        val newIndexes = currBlock.currOffsets.offsets2Indexes()
+        val newIndexes = currBlock.currOffsets.indexes
         oldIndexes.forEach {
             if (!newIndexes.contains(it)) {
-                screenDisplayState[it] = false
+                pointState[it] = false
             }
         }
         newIndexes.forEach {
-            screenDisplayState[it] = true
+            pointState[it] = true
         }
         if (changeBlock) {
             if (newIndexes.size != BLOCK_POINT_COUNT) {
@@ -99,23 +121,19 @@ class TetrisViewModel : ViewModel() {
             } else {
                 clearLine()
                 currBlock = nextBlock
-                nextBlock = randomBlock()
+                nextBlock = Block()
             }
         }
     }
 
     private fun clearLine() {
         val newDisplayed = mutableSetOf<Int>()
-        var newLineY = ROW_COUNT - 1
+        var newLineCount = ROW_COUNT - 1
         var clearedLine = 0
-        for (fakeY in 0 until ROW_COUNT) {
-            val realY = ROW_COUNT - fakeY - 1
-            var linePointCount = 0
-            for (x in 0 until COLUMN_COUNT) {
-                if (screenDisplayState[x, realY]) {
-                    linePointCount++
-                }
-            }
+        for (y in ROW_COUNT - 1 downTo 0) {
+            val linePointCount = pointState
+                .subList(y * COLUMN_COUNT, (y + 1) * COLUMN_COUNT)
+                .count { it }
             if (linePointCount == 0) {
                 continue
             }
@@ -124,70 +142,38 @@ class TetrisViewModel : ViewModel() {
                 continue
             }
             for (x in 0 until COLUMN_COUNT) {
-                if (screenDisplayState[x, realY]) {
-                    newDisplayed.add(newLineY * COLUMN_COUNT + x)
-                }
+                if (pointState[x, y])
+                    newDisplayed.add(newLineCount * COLUMN_COUNT + x)
             }
-            newLineY--
+            newLineCount--
         }
         if (clearedLine > 0) {
             // 1 line = 100, 2 line = 250, 3 line = 400, 4 line = 600
             currScore += 100 * clearedLine + (50 * (clearedLine - 1))
-            for (x in 0 until COLUMN_COUNT) {
-                for (y in 0 until ROW_COUNT) {
-                    screenDisplayState[x, y] = newDisplayed.contains(x + y * COLUMN_COUNT)
-                }
+            pointState.indices.forEach {
+                pointState[it] = newDisplayed.contains(it)
             }
         }
-    }
-
-    private fun canMoveDown(): Boolean {
-        currBlock.currOffsets.bottom.forEach {
-            if (it.y >= -1 && (it.y >= ROW_COUNT - 1 || screenDisplayState[it.x, it.y + 1])) {
-                return false
-            }
-        }
-        return true
-    }
-
-    private fun canMoveLeft(): Boolean {
-        currBlock.currOffsets.left.forEach {
-            if (it.x <= 0 || it.y >= 0 && screenDisplayState[it.x - 1, it.y]) {
-                return false
-            }
-        }
-        return true
-    }
-
-    private fun canMoveRight(): Boolean {
-        currBlock.currOffsets.right.forEach {
-            if (it.x >= COLUMN_COUNT - 1 || it.y >= 0 && screenDisplayState[it.x + 1, it.y]) {
-                return false
-            }
-        }
-        return true
-    }
-
-    private fun canRotate(): Boolean {
-        if (currBlock.offsets.size == 1) {
-            return false
-        }
-        val currIndexes = currBlock.currOffsets.offsets2Indexes()
-        val leftTop = currBlock.leftTop
-        val nextState =
-            if (currBlock.currState == currBlock.offsets.size - 1) 0 else currBlock.currState + 1
-        currBlock.offsets[nextState].forEach {
-            val index = it.x + leftTop.x + COLUMN_COUNT * (it.y + leftTop.y)
-            if (!currIndexes.contains(index) && screenDisplayState[index]) {
-                return false
-            }
-        }
-        return true
     }
 
     companion object {
         operator fun List<Boolean>.get(x: Int, y: Int) = get(y * COLUMN_COUNT + x)
-        operator fun MutableList<Boolean>.set(x: Int, y: Int, v: Boolean) =
-            set(y * COLUMN_COUNT + x, v)
+
+        fun <T> Iterable<T>.checkAll(checker: (T) -> Boolean): Boolean {
+            forEach { if (!checker.invoke(it)) return false }
+            return true
+        }
+
+        val Offset.index: Int
+            get() = x + y * COLUMN_COUNT
+
+        val Iterable<Offset>.indexes: MutableSet<Int>
+            get() = mutableSetOf<Int>().also { result ->
+                forEach {
+                    if (it.x in 0 until COLUMN_COUNT && it.y in 0 until ROW_COUNT) {
+                        result.add(it.index)
+                    }
+                }
+            }
     }
 }
