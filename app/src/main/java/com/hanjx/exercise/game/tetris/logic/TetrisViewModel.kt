@@ -8,6 +8,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.*
 import kotlin.math.max
+import kotlin.math.min
 
 class TetrisViewModel : ViewModel() {
     val pointState = mutableStateListOf<Boolean>().apply {
@@ -17,8 +18,10 @@ class TetrisViewModel : ViewModel() {
     var nextBlock by mutableStateOf(Block())
     var recordScore by mutableStateOf(0)
     var currScore by mutableStateOf(0)
+    var level by mutableStateOf(1)
 
     private var running = false
+    private var gameTime = 0
     private var downJob: Job? = null
 
     fun doAction(action: Action) {
@@ -29,8 +32,11 @@ class TetrisViewModel : ViewModel() {
                         running = true
                         downJob = launch(Dispatchers.Default) {
                             while (true) {
-                                delay(500)
+                                val delayTime = 650 - (level) * 50
+                                delay(delayTime.toLong())
                                 launch(Dispatchers.Main) {
+                                    gameTime += delayTime
+                                    level = min(gameTime / (30 * 1000) + 1, 15)
                                     doAction(Action.MoveDown)
                                 }
                             }
@@ -46,9 +52,10 @@ class TetrisViewModel : ViewModel() {
                 Action.ResetGame -> {
                     running = false
                     downJob?.cancel()
-                    pointState.indices.forEach {
-                        pointState[it] = false
-                    }
+                    pointState.indices.forEach { pointState[it] = false }
+                    gameTime = 0
+                    level = 1
+                    currScore = 0
                     currBlock = Block()
                     nextBlock = Block()
                 }
@@ -116,7 +123,6 @@ class TetrisViewModel : ViewModel() {
         if (changeBlock) {
             if (newIndexes.size != BLOCK_POINT_COUNT) {
                 recordScore = max(recordScore, currScore)
-                currScore = 0
                 doAction(Action.ResetGame)
             } else {
                 clearLine()

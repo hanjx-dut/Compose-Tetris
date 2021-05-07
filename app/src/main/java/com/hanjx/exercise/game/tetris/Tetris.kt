@@ -42,6 +42,7 @@ fun Tetris(modifier: Modifier = Modifier) {
             StatusScreen(
                 modifier = Modifier.padding(start = 10.dp),
                 maxScore = viewModel.recordScore,
+                level = viewModel.level,
                 currScore = viewModel.currScore,
                 currBlock = viewModel.currBlock,
                 nextBlock = viewModel.nextBlock,
@@ -98,6 +99,7 @@ fun StatusScreen(
     modifier: Modifier = Modifier,
     maxScore: Int = 99999,
     currScore: Int = 1234,
+    level: Int = 0,
     currBlock: Block = Block(),
     nextBlock: Block = Block(),
 ) {
@@ -116,6 +118,11 @@ fun StatusScreen(
         )
         BlockSummary(Modifier.padding(top = 30.dp), "CURRENT", currBlock)
         BlockSummary(Modifier, "NEXT", nextBlock)
+        Text(
+            text = "LEVEL\n${level}",
+            style = TextStyle(textAlign = TextAlign.Center),
+            modifier = Modifier.padding(top = 20.dp)
+        )
     }
 }
 
