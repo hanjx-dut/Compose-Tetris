@@ -2,7 +2,7 @@ package com.hanjx.exercise.game.tetris.logic
 
 import kotlin.random.Random
 
-class Block {
+open class Block {
     val offsets: List<List<Offset>> = blockOffsetEnum[Random.nextInt(blockOffsetEnum.size)]
     var state: Int = Random.nextInt(offsets.size)
     val leftTop: Offset =

@@ -19,6 +19,7 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity android:name="com.hanjx.exercise.game.tetris_java.TetrisActivity" />
     </application>
 
 </manifest>

@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <com.hanjx.exercise.game.tetris_java.view.GameScreen
+        android:id="@+id/game_screen"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintEnd_toStartOf="@id/record_text"
+        app:layout_constraintHorizontal_chainStyle="packed"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        tools:layout_height="480dp"
+        tools:layout_width="240dp" />
+
+    <TextView
+        android:id="@+id/record_text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="10dp"
+        android:gravity="center"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@id/game_screen"
+        app:layout_constraintTop_toTopOf="parent"
+        tools:text="RECORD\n99999" />
+
+    <TextView
+        android:id="@+id/score_text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        android:gravity="center"
+        app:layout_constraintEnd_toEndOf="@id/record_text"
+        app:layout_constraintStart_toStartOf="@id/record_text"
+        app:layout_constraintTop_toBottomOf="@id/record_text"
+        tools:text="SCORE\n9999" />
+
+    <TextView
+        android:id="@+id/curr_block_text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="50dp"
+        android:gravity="center"
+        android:text="CURR"
+        app:layout_constraintEnd_toEndOf="@id/record_text"
+        app:layout_constraintStart_toStartOf="@id/record_text"
+        app:layout_constraintTop_toBottomOf="@id/score_text" />
+
+    <com.hanjx.exercise.game.tetris_java.view.BlockPreview
+        android:id="@+id/curr_block"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        app:layout_constraintEnd_toEndOf="@id/record_text"
+        app:layout_constraintStart_toStartOf="@id/record_text"
+        app:layout_constraintTop_toBottomOf="@id/curr_block_text"
+        tools:layout_height="40dp"
+        tools:layout_width="40dp" />
+
+    <TextView
+        android:id="@+id/next_block_text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="40dp"
+        android:gravity="center"
+        android:text="NEXT"
+        app:layout_constraintEnd_toEndOf="@id/record_text"
+        app:layout_constraintStart_toStartOf="@id/record_text"
+        app:layout_constraintTop_toBottomOf="@id/curr_block" />
+
+    <com.hanjx.exercise.game.tetris_java.view.BlockPreview
+        android:id="@+id/next_block"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        app:layout_constraintEnd_toEndOf="@id/record_text"
+        app:layout_constraintStart_toStartOf="@id/record_text"
+        app:layout_constraintTop_toBottomOf="@id/next_block_text"
+        tools:layout_height="40dp"
+        tools:layout_width="40dp" />
+
+    <TextView
+        android:id="@+id/level"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        android:gravity="center"
+        app:layout_constraintEnd_toEndOf="@id/record_text"
+        app:layout_constraintStart_toStartOf="@id/record_text"
+        app:layout_constraintTop_toBottomOf="@id/next_block"
+        tools:text="LEVEL\n1" />
+
+    <TextView
+        android:id="@+id/start_game"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:text="START"
+        android:textColor="#3C7CFC"
+        android:textSize="20sp"
+        app:layout_constraintEnd_toStartOf="@id/pause_game"
+        app:layout_constraintHorizontal_chainStyle="packed"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/game_screen" />
+
+    <TextView
+        android:id="@+id/pause_game"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="20dp"
+        android:text="PAUSE"
+        android:textColor="#3C7CFC"
+        android:textSize="20sp"
+        app:layout_constraintEnd_toStartOf="@id/reset_game"
+        app:layout_constraintStart_toEndOf="@id/start_game"
+        app:layout_constraintTop_toTopOf="@id/start_game" />
+
+    <TextView
+        android:id="@+id/reset_game"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="20dp"
+        android:text="RESET"
+        android:textColor="#3C7CFC"
+        android:textSize="20sp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@id/pause_game"
+        app:layout_constraintTop_toTopOf="@id/start_game" />
+
+    <FrameLayout
+        android:layout_width="180dp"
+        android:layout_height="180dp"
+        android:layout_marginTop="20dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/start_game">
+
+        <View
+            android:id="@+id/rotate"
+            android:layout_width="60dp"
+            android:layout_height="60dp"
+            android:layout_gravity="top|center_horizontal"
+            android:background="@drawable/app_rotate" />
+
+        <View
+            android:id="@+id/move_left"
+            android:layout_width="60dp"
+            android:layout_height="60dp"
+            android:layout_gravity="start|center_vertical"
+            android:background="@drawable/app_arrow_left" />
+
+        <View
+            android:id="@+id/drop"
+            android:layout_width="60dp"
+            android:layout_height="60dp"
+            android:layout_gravity="center"
+            android:background="@drawable/app_drop" />
+
+        <View
+            android:id="@+id/move_right"
+            android:layout_width="60dp"
+            android:layout_height="60dp"
+            android:layout_gravity="end|center_vertical"
+            android:background="@drawable/app_arrow_right" />
+
+        <View
+            android:id="@+id/move_down"
+            android:layout_width="60dp"
+            android:layout_height="60dp"
+            android:layout_gravity="bottom|center_horizontal"
+            android:background="@drawable/app_arrow_down" />
+    </FrameLayout>
+</androidx.constraintlayout.widget.ConstraintLayout>
